@@ -161,6 +161,10 @@ func (k *Shell) Templates(app fs.FS, pattern string, funcs template.FuncMap) (*t
 	all := template.FuncMap{
 		"icon":   Icon,
 		"themes": func() []string { return Themes },
+		"ring":   Ring,
+		"bars":   Bars,
+		"meter":  Meter,
+		"ints":   Ints,
 	}
 	for name, fn := range funcs {
 		all[name] = fn

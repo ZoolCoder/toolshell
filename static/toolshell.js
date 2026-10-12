@@ -35,10 +35,13 @@
     });
 
     // Long-running forms show they are working: <form data-busy="Planning…">.
+    // A button with a [data-label] child keeps its layout and swaps only that.
     document.querySelectorAll('form[data-busy]').forEach(function (f) {
       f.addEventListener('submit', function () {
         var b = f.querySelector('button[type=submit]');
-        if (b) { b.disabled = true; b.classList.add('busy'); b.textContent = f.dataset.busy; }
+        if (!b) return;
+        b.disabled = true; b.classList.add('busy');
+        (b.querySelector('[data-label]') || b).textContent = f.dataset.busy;
       });
     });
 
