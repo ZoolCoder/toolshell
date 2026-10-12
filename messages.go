@@ -1,0 +1,67 @@
+package toolshell
+
+// shellMessages translate the shell's own text. Keys are the English text the
+// templates and the script use.
+var shellMessages = map[string]map[string]string{
+	"ar": {
+		"Skip to content":                 "انتقل إلى المحتوى",
+		"Open menu":                       "افتح القائمة",
+		"Search and jump":                 "ابحث وانتقل",
+		"Main menu":                       "القائمة الرئيسية",
+		"Main":                            "الرئيسية",
+		"Expand menu":                     "وسّع القائمة",
+		"Collapse menu":                   "اطوِ القائمة",
+		"Close menu":                      "أغلق القائمة",
+		"Jump to…":                        "انتقل إلى…",
+		"Jump to a page or run an action": "انتقل إلى صفحة أو نفّذ إجراءً",
+		"Search pages and actions":        "ابحث في الصفحات والإجراءات",
+		"Results":                         "النتائج",
+		"move":                            "تنقّل",
+		"open":                            "افتح",
+		"close":                           "أغلق",
+		"all shortcuts":                   "كل الاختصارات",
+		"Keyboard shortcuts":              "اختصارات لوحة المفاتيح",
+		"Fold or unfold the menu":         "اطوِ القائمة أو وسّعها",
+		"Search the table on this page":   "ابحث في جدول هذه الصفحة",
+		"This list":                       "هذه القائمة",
+		"Close":                           "إغلاق",
+		"Theme":                           "المظهر",
+		"light":                           "فاتح",
+		"dark":                            "داكن",
+		"auto":                            "تلقائي",
+		"Follow the system setting":       "اتبع إعداد النظام",
+		"Language":                        "اللغة",
+		"Account menu":                    "قائمة الحساب",
+		"Notifications":                   "الإشعارات",
+		"Done":                            "تم",
+		"Something went wrong":            "حدث خطأ",
+		"Dismiss":                         "تجاهل",
+		"Working…":                        "جارٍ العمل…",
+		"Waiting for the server. Keep this tab open.": "بانتظار الخادم. أبقِ هذه الصفحة مفتوحة.",
+		"Still working — some providers are slow.":    "ما زال العمل جارياً — بعض المزوّدين بطيئون.",
+		"Are you sure?":                    "هل أنت متأكد؟",
+		"Cancel":                           "إلغاء",
+		"Continue":                         "متابعة",
+		"Go back":                          "رجوع",
+		"Back to home":                     "العودة إلى الرئيسية",
+		"Copied":                           "تم النسخ",
+		"Copy failed":                      "تعذّر النسخ",
+		"Nothing matches":                  "لا توجد نتائج مطابقة",
+		"1 result":                         "نتيجة واحدة",
+		"%d results":                       "%d نتائج",
+		"Page":                             "صفحة",
+		"Action":                           "إجراء",
+		"Could not load the actions list.": "تعذّر تحميل قائمة الإجراءات.",
+		"Page not found":                   "الصفحة غير موجودة",
+		"Nothing lives at this address.":   "لا يوجد شيء على هذا العنوان.",
+		"This page failed":                 "تعذّر عرض هذه الصفحة",
+	},
+}
+
+// scriptText is the text toolshell.js shows, handed to it in the page's
+// language.
+var scriptText = []string{
+	"Copied", "Copy failed", "Nothing matches", "1 result", "%d results", "Page", "Action",
+	"Expand menu", "Collapse menu", "Working…", "Still working — some providers are slow.",
+	"Could not load the actions list.", "Done", "Something went wrong", "Dismiss",
+}

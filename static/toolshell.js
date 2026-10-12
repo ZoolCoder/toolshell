@@ -8,48 +8,56 @@
   function onReady(fn) {
     if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn);
   }
+  // TEXT is the script's own text in the page's language, from #ts-text.
+  var TEXT = {};
+  function t(s) { return TEXT[s] || s; }
+  function rtl() { return document.documentElement.dir === 'rtl'; }
   function typing() {
     var el = document.activeElement;
     return el && (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.isContentEditable);
   }
 
   onReady(function () {
+    try { TEXT = JSON.parse(document.getElementById('ts-text').textContent) || {}; } catch (e) { TEXT = {}; }
     var shell = document.querySelector('.shell');
+    var toast = toasts();
+    window.toolshell = { toast: toast };
+    busy(shell);
+    menus();
     var fold = sidebar(shell);
     var drawer = slideIn(shell);
     var tips = tooltips();
     if (fold) fold.onChange = tips.refresh;
-    var pal = palette();
+    var pal = palette(toast);
     shortcuts(fold, drawer, pal);
+    document.querySelectorAll('[data-keys]').forEach(function (b) { b.addEventListener('click', function () { if (pal) pal.keys(); }); });
 
-    // Copy buttons: <button data-copy="#id"> copies that element's text.
+    // Copy buttons: <button data-copy="#id"> copies that element's text. A
+    // [data-label] child says Copied for a moment; the icon stays.
     document.querySelectorAll('[data-copy]').forEach(function (b) {
       b.addEventListener('click', function () {
         var src = document.querySelector(b.dataset.copy);
-        if (!src || !navigator.clipboard) return;
+        if (!src) return;
+        var failed = function () { toast('bad', t('Copy failed')); };
+        if (!navigator.clipboard) { failed(); return; }
         navigator.clipboard.writeText(src.textContent.trim()).then(function () {
-          var was = b.textContent; b.textContent = 'Copied'; b.classList.add('done');
-          setTimeout(function () { b.textContent = was; b.classList.remove('done'); }, 1600);
-        });
+          var lbl = b.querySelector('[data-label]');
+          var was = lbl ? lbl.textContent : '';
+          if (lbl) lbl.textContent = t('Copied');
+          b.classList.add('done');
+          setTimeout(function () { if (lbl) lbl.textContent = was; b.classList.remove('done'); }, 1600);
+        }, failed);
       });
     });
 
-    // Long-running forms show they are working: <form data-busy="Planning…">.
-    // A button with a [data-label] child keeps its layout and swaps only that.
-    document.querySelectorAll('form[data-busy]').forEach(function (f) {
-      f.addEventListener('submit', function () {
-        var b = f.querySelector('button[type=submit]');
-        if (!b) return;
-        b.disabled = true; b.classList.add('busy');
-        (b.querySelector('[data-label]') || b).textContent = f.dataset.busy;
+    // <button data-back> goes back, or home when there is no history.
+    document.querySelectorAll('[data-back]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (history.length > 1 && document.referrer) history.back(); else location.href = '/';
       });
     });
 
-    // Flash messages close with their x, and the ?msg= / ?err= leave the URL
-    // so a reload does not show them again.
-    document.querySelectorAll('[data-dismiss]').forEach(function (b) {
-      b.addEventListener('click', function () { b.parentNode.remove(); });
-    });
+    // The ?msg= / ?err= leave the URL so a reload does not show them again.
     var u = new URL(location.href);
     if (u.searchParams.has('msg') || u.searchParams.has('err')) {
       u.searchParams.delete('msg'); u.searchParams.delete('err');
@@ -82,7 +90,7 @@
     if (!shell || !btn) return null;
     var api = { onChange: null, toggle: toggle };
     function label(mini) {
-      var text = mini ? 'Expand menu' : 'Collapse menu';
+      var text = t(mini ? 'Expand menu' : 'Collapse menu');
       btn.setAttribute('aria-expanded', String(!mini));
       btn.setAttribute('aria-label', text);
       btn.dataset.tip = text + '  [';
@@ -190,7 +198,7 @@
       var r = host.getBoundingClientRect(), t = tip.getBoundingClientRect(), gap = 8;
       var vw = document.documentElement.clientWidth, x, y;
       if (host.dataset.tipPos === 'right') {
-        x = r.right + gap; y = r.top + (r.height - t.height) / 2;
+        x = rtl() ? r.left - gap - t.width : r.right + gap; y = r.top + (r.height - t.height) / 2;
       } else {
         x = r.left + (r.width - t.width) / 2; y = r.top - t.height - gap;
         if (y < 4) y = r.bottom + gap;
@@ -243,7 +251,7 @@
 
   // palette is the Ctrl/Cmd-K jump list: the sidebar's pages plus whatever
   // the app serves at the dialog's data-src.
-  function palette() {
+  function palette(toast) {
     var dlg = document.getElementById('ts-palette');
     var help = document.getElementById('ts-keys');
     if (!dlg || !dlg.showModal) return null;
@@ -257,17 +265,23 @@
     document.querySelectorAll('.side nav a[href]').forEach(function (a) {
       var lbl = a.querySelector('.lbl');
       var svg = a.querySelector('svg');
-      pages.push({ label: lbl ? lbl.textContent.trim() : a.textContent.trim(), hint: 'Page', href: a.getAttribute('href'), icon: svg ? svg.outerHTML : '' });
+      pages.push({ label: lbl ? lbl.textContent.trim() : a.textContent.trim(), hint: t('Page'), href: a.getAttribute('href'), icon: svg ? svg.outerHTML : '' });
     });
     var extra = null, shown = [], active = 0, opener = null;
 
     function load() {
       if (extra || !dlg.dataset.src) return;
       extra = [];
-      fetch(dlg.dataset.src, { cache: 'no-store', credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (d) {
+      fetch(dlg.dataset.src, { cache: 'no-store', credentials: 'same-origin' }).then(function (r) {
+        if (!r.ok) throw new Error(r.status);
+        return r.json();
+      }).then(function (d) {
         extra = d || [];
         render();
-      }).catch(function () {});
+      }).catch(function () {
+        extra = null;
+        toast('bad', t('Could not load the actions list.'));
+      });
     }
     // score: every query letter in order; earlier, word-start and back-to-back
     // hits rank higher. null is no match.
@@ -307,7 +321,7 @@
         var b = document.createElement('b');
         b.textContent = it.label;
         var sm = document.createElement('small');
-        sm.textContent = it.hint || (it.post ? 'Action' : '');
+        sm.textContent = it.hint || (it.post ? t('Action') : '');
         li.appendChild(b);
         li.appendChild(sm);
         li.addEventListener('mousedown', function (e) { e.preventDefault(); go(it); });
@@ -317,10 +331,10 @@
       if (!shown.length) {
         var none = document.createElement('li');
         none.className = 'none';
-        none.textContent = 'Nothing matches';
+        none.textContent = t('Nothing matches');
         list.appendChild(none);
       }
-      count.textContent = shown.length === 1 ? '1 result' : shown.length + ' results';
+      count.textContent = shown.length === 1 ? t('1 result') : t('%d results').replace('%d', shown.length);
       mark();
     }
     function mark() {
@@ -333,16 +347,19 @@
     }
     function go(it) {
       if (it.post) {
+        // requestSubmit, not submit, so the busy veil and its guards run
         var f = document.createElement('form');
         f.method = 'post';
         f.action = it.post;
+        f.dataset.busy = it.label;
         Object.keys(it.fields || {}).forEach(function (k) {
           var h = document.createElement('input');
           h.type = 'hidden'; h.name = k; h.value = it.fields[k];
           f.appendChild(h);
         });
         document.body.appendChild(f);
-        f.submit();
+        dlg.close();
+        f.requestSubmit();
         return;
       }
       location.href = it.href;
@@ -417,6 +434,190 @@
       } else {
         gAt = 0;
       }
+    });
+  }
+
+  // toasts: the server writes the outcome of a form as a toast; this wires its
+  // close button and timer, and makes toast(kind, text) for the script. A
+  // success leaves on its own once its bar runs out (paused while hovered);
+  // an error stays until closed.
+  function toasts() {
+    var box = document.getElementById('ts-toasts');
+    var still = window.matchMedia('(prefers-reduced-motion:reduce)');
+    function dismiss(el) {
+      if (!el.isConnected) return;
+      el.classList.add('out');
+      setTimeout(function () { el.remove(); }, still.matches ? 0 : 230);
+    }
+    function wire(el) {
+      var life = el.querySelector('.life');
+      if (!life) return;
+      if (still.matches) setTimeout(function () { dismiss(el); }, 8000);
+      else life.addEventListener('animationend', function () { dismiss(el); });
+    }
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('[data-dismiss]');
+      var el = b && b.closest('.toast,.flash');
+      if (!el) return;
+      if (el.classList.contains('toast')) dismiss(el); else el.remove();
+    });
+    if (box) box.querySelectorAll('.toast').forEach(function (el) {
+      wire(el);
+      // a live region is announced when it changes, not when the page loads
+      // with it, so the text goes in again once the page is up
+      var d = el.querySelector('div');
+      var kids = Array.prototype.slice.call(d.childNodes);
+      d.replaceChildren();
+      setTimeout(function () { d.replaceChildren.apply(d, kids); }, 150);
+    });
+    var icons = {
+      ok: '<path d="M3.5 8.5l3 3 6-7"/>',
+      bad: '<path d="M8 2.5l6 11H2z"/><path d="M8 6.5v3M8 11.5v.01"/>',
+      close: '<path d="M4 4l8 8M12 4l-8 8"/>'
+    };
+    function svg(name) {
+      return '<svg aria-hidden="true" focusable="false" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + icons[name] + '</svg>';
+    }
+    return function (kind, text) {
+      if (!box) return;
+      var ok = kind !== 'bad';
+      var el = document.createElement('div');
+      el.className = 'toast ' + (ok ? 'ok' : 'bad');
+      el.setAttribute('role', ok ? 'status' : 'alert');
+      el.innerHTML = '<span class="ti">' + svg(ok ? 'ok' : 'bad') + '</span><div><b></b><span></span></div>' +
+        '<button class="iconbtn" type="button" data-dismiss>' + svg('close') + '</button>' + (ok ? '<i class="life"></i>' : '');
+      el.querySelector('b').textContent = t(ok ? 'Done' : 'Something went wrong');
+      el.querySelector('div>span').textContent = text;
+      el.querySelector('button').setAttribute('aria-label', t('Dismiss'));
+      box.appendChild(el);
+      wire(el);
+    };
+  }
+
+  // busy: a post blocks the page until the next one loads. The bar starts at
+  // once; after a beat a veil covers the page with an elapsed timer, and the
+  // shell goes inert so nothing else can be clicked or submitted. A form with
+  // data-confirm="text" asks first; data-busy="Planning…" names the work.
+  // A page restored from the back/forward cache comes back unlocked.
+  function busy(shell) {
+    var bar = document.getElementById('ts-progress');
+    var veil = document.getElementById('ts-veil');
+    var ask = document.getElementById('ts-confirm');
+    var on = false, t0 = 0, timers = [], locked = [];
+
+    function progress() {
+      if (!bar) return;
+      bar.hidden = true;
+      void bar.offsetWidth; // restart the animation
+      bar.hidden = false;
+    }
+    function tick() {
+      var s = Math.floor((Date.now() - t0) / 1000);
+      veil.querySelector('[data-veil-time]').textContent = s < 60 ? s + 's' : Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+      if (s >= 60 && !veil.classList.contains('slow')) {
+        veil.classList.add('slow');
+        veil.querySelector('[data-veil-note]').textContent = t('Still working — some providers are slow.');
+      }
+      timers.push(setTimeout(tick, 1000));
+    }
+    function start(form, submitter) {
+      on = true; t0 = Date.now();
+      document.documentElement.classList.add('busy');
+      progress();
+      // after the submit event, so the button's own name and value still go
+      setTimeout(function () {
+        form.querySelectorAll('button[type=submit],button:not([type])').forEach(function (b) {
+          b.disabled = true; locked.push(b);
+        });
+        if (submitter) {
+          submitter.classList.add('busy');
+          var lbl = submitter.querySelector('[data-label]');
+          if (lbl && form.dataset.busy) { lbl.dataset.was = lbl.textContent; lbl.textContent = form.dataset.busy; }
+        }
+        if (shell) shell.inert = true;
+      }, 0);
+      timers.push(setTimeout(function () {
+        if (!veil) return;
+        veil.querySelector('[data-veil-text]').textContent = form.dataset.busy || t('Working…');
+        veil.hidden = false;
+        tick();
+      }, 250));
+    }
+    function stop() {
+      on = false;
+      timers.forEach(clearTimeout); timers = [];
+      document.documentElement.classList.remove('busy');
+      if (bar) bar.hidden = true;
+      if (veil) { veil.hidden = true; veil.classList.remove('slow'); }
+      if (shell) shell.inert = false;
+      locked.forEach(function (b) {
+        b.disabled = false; b.classList.remove('busy');
+        var lbl = b.querySelector('[data-label]');
+        if (lbl && lbl.dataset.was) { lbl.textContent = lbl.dataset.was; delete lbl.dataset.was; }
+      });
+      locked = [];
+    }
+    function confirmFirst(form, submitter) {
+      if (!ask || !ask.showModal) return false;
+      ask.querySelector('#ts-confirm-p').textContent = form.dataset.confirm;
+      ask.returnValue = '';
+      ask.addEventListener('close', function done() {
+        ask.removeEventListener('close', done);
+        if (ask.returnValue !== 'ok') return;
+        form.dataset.confirmed = '1';
+        form.requestSubmit(submitter && submitter.form === form ? submitter : undefined);
+      });
+      ask.showModal();
+      ask.querySelector('[data-confirm-ok]').focus();
+      return true;
+    }
+
+    document.addEventListener('submit', function (e) {
+      var form = e.target, submitter = e.submitter;
+      if ((form.getAttribute('method') || '').toLowerCase() === 'dialog') return;
+      if (on) { e.preventDefault(); return; }
+      if (form.dataset.confirm && !form.dataset.confirmed) {
+        if (confirmFirst(form, submitter)) { e.preventDefault(); return; }
+      }
+      delete form.dataset.confirmed;
+      if (e.defaultPrevented) return;
+      if (form.method === 'post' || form.dataset.busy) start(form, submitter);
+      else progress();
+    });
+    // the bar alone for a plain link to another page here
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      if (a.target || a.hasAttribute('download') || a.origin !== location.origin) return;
+      if (a.pathname === location.pathname && a.search === location.search && a.hash) return;
+      progress();
+    });
+    window.addEventListener('pageshow', function (e) { if (e.persisted) stop(); });
+    window.addEventListener('pagehide', function () { if (bar) bar.hidden = true; });
+  }
+
+  // menus: the header popovers. Opening one focuses its first item; arrows,
+  // Home and End move through the items; Escape and a click outside close
+  // it on their own.
+  function menus() {
+    document.querySelectorAll('.menu[popover]').forEach(function (m) {
+      function items() { return Array.prototype.slice.call(m.querySelectorAll('a,button')); }
+      m.addEventListener('toggle', function (e) {
+        if (e.newState !== 'open') return;
+        var list = items();
+        var pick = m.querySelector('[aria-checked=true]') || list[0];
+        if (pick) pick.focus();
+      });
+      m.addEventListener('keydown', function (e) {
+        var list = items(), i = list.indexOf(document.activeElement);
+        var k = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: list.length - 1 }[e.key];
+        if (k === undefined || !list.length) return;
+        e.preventDefault();
+        list[(k + list.length) % list.length].focus();
+      });
+      m.addEventListener('click', function (e) {
+        if (e.target.closest('button') && m.hidePopover) m.hidePopover();
+      });
     });
   }
 
