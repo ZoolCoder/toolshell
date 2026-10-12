@@ -1,0 +1,70 @@
+{{/* ts-top and ts-bottom wrap every page. Page data embeds toolshell.Chrome. */}}
+{{define "ts-top"}}<!doctype html>
+<html lang="en" data-theme="{{.Theme}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{if .Title}}{{.Title}} · {{end}}{{.Brand.Name}}{{.Brand.Accent}}</title>
+<link rel="icon" href="/_ts/mark.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/_ts/toolshell.css">
+<script src="/_ts/toolshell.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="shell{{if .Mini}} mini{{end}}" data-cookie="{{.Cookie}}">
+<header class="mbar">
+  <button class="iconbtn" type="button" data-drawer aria-controls="ts-side" aria-expanded="false" aria-label="Open menu">{{icon "menu"}}</button>
+  {{template "ts-brand" .}}
+  <button class="iconbtn" type="button" data-palette aria-label="Search and jump">{{icon "search"}}</button>
+</header>
+<div class="scrim" data-scrim hidden></div>
+<aside class="side" id="ts-side" aria-label="Main menu">
+  <div class="sidetop">
+    {{template "ts-brand" .}}
+    <button class="iconbtn sidefold" type="button" data-fold aria-controls="ts-side" aria-expanded="{{not .Mini}}" aria-label="{{if .Mini}}Expand menu{{else}}Collapse menu{{end}}" aria-keyshortcuts="[">{{icon "fold"}}</button>
+    <button class="iconbtn sideclose" type="button" data-drawer-close aria-label="Close menu">{{icon "close"}}</button>
+  </div>
+  <button class="palhint" type="button" data-palette aria-keyshortcuts="Control+K Meta+K" aria-label="Jump to a page or run an action">{{icon "search"}}<span class="lbl">Jump to…</span><kbd data-palkey>Ctrl K</kbd></button>
+  <nav aria-label="Main">
+  {{range .Nav}}{{if .Title}}<p class="navh">{{.Title}}</p>{{end}}
+  {{range .Items}}<a href="{{.Href}}"{{if .Hotkey}} data-hotkey="{{.Hotkey}}" aria-keyshortcuts="g {{.Hotkey}}"{{end}}{{if eq .Key $.Active}} class="on" aria-current="page"{{end}}>{{icon .Icon}}<span class="lbl">{{.Label}}</span>{{if .Count}}<span class="nb">{{.Count}}</span>{{end}}</a>
+  {{end}}{{end}}</nav>
+  <div class="side-foot">
+    <div class="theme" role="group" aria-label="Theme">{{range themes}}<a href="/theme?set={{.}}&amp;back={{$.ReturnTo}}"{{if eq . $.Theme}} class="on" aria-current="true"{{end}}{{if eq . "auto"}} title="Follow the system setting"{{end}}>{{.}}</a>{{end}}</div>
+    {{with .Status}}{{if .Label}}<div class="led{{with .Tone}} {{.}}{{end}}"><i></i><span class="lbl">{{.Label}}{{if .Detail}}<small>{{.Detail}}</small>{{end}}</span></div>{{end}}{{end}}
+  </div>
+</aside>
+<div class="body">
+<main id="main" tabindex="-1">
+{{if .Msg}}<div class="flash ok" role="status"><b>✓</b><span>{{.Msg}}</span><button class="iconbtn" type="button" data-dismiss aria-label="Dismiss">{{icon "close"}}</button></div>{{end}}
+{{if .Err}}<div class="flash bad" role="alert"><b>✕</b><span>{{.Err}}</span><button class="iconbtn" type="button" data-dismiss aria-label="Dismiss">{{icon "close"}}</button></div>{{end}}
+{{end}}
+
+{{define "ts-bottom"}}
+</main>
+{{if .Footer}}<footer>{{.Footer}}</footer>{{end}}
+</div>
+</div>
+<dialog class="palette" id="ts-palette" aria-label="Jump to a page or run an action"{{if .Palette}} data-src="/_ts/palette.json"{{end}}>
+  <input type="text" id="ts-palette-q" role="combobox" aria-expanded="true" aria-controls="ts-palette-list" aria-autocomplete="list" aria-label="Search pages and actions" placeholder="Search pages and actions" autocomplete="off" spellcheck="false">
+  <ul id="ts-palette-list" role="listbox" aria-label="Results"></ul>
+  <p class="sr-only" aria-live="polite" data-palcount></p>
+  <p class="palfoot"><kbd>↑</kbd><kbd>↓</kbd> move · <kbd>Enter</kbd> open · <kbd>Esc</kbd> close · <kbd>?</kbd> all shortcuts</p>
+</dialog>
+<dialog class="palette keys" id="ts-keys" aria-labelledby="ts-keys-h">
+  <h2 id="ts-keys-h">Keyboard shortcuts</h2>
+  <dl>
+    <dt><kbd>Ctrl</kbd>/<kbd>⌘</kbd> <kbd>K</kbd></dt><dd>Jump to a page or run an action</dd>
+    {{range .Hotkeys}}<dt><kbd>g</kbd> <kbd>{{.Hotkey}}</kbd></dt><dd>{{.Label}}</dd>
+    {{end}}<dt><kbd>[</kbd></dt><dd>Fold or unfold the menu</dd>
+    <dt><kbd>/</kbd></dt><dd>Search the table on this page</dd>
+    <dt><kbd>?</kbd></dt><dd>This list</dd>
+  </dl>
+  <form method="dialog"><button class="btn mini">Close</button></form>
+</dialog>
+</body>
+</html>
+{{end}}
+
+{{define "ts-brand"}}<a class="brand" href="{{.Brand.Home}}" aria-label="{{.Brand.Name}}{{.Brand.Accent}} home">{{if .Brand.Mark}}{{.Brand.Mark}}{{else}}{{template "ts-mark"}}{{end}}<span class="word">{{.Brand.Name}}<b>{{.Brand.Accent}}</b>{{with .Brand.Tagline}}<small>{{.}}</small>{{end}}</span></a>{{end}}
