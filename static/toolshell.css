@@ -572,3 +572,5 @@ ul.legend .p-blue i{background:var(--p-blue)}ul.legend .p-amber i{background:var
 
 @media (max-width:900px){.hdr{padding:8px 12px;gap:8px}.toasts{top:64px;inset-inline-end:16px}}
 @media (max-width:720px){.errpage{padding:6vh 0}.toasts{inset-inline:16px;width:auto}}
+/* free text (provider errors, details) keeps its own direction inside an RTL page */
+[dir=rtl] td.wrap,[dir=rtl] .err,[dir=rtl] .next p,[dir=rtl] .toast span{unicode-bidi:plaintext}
