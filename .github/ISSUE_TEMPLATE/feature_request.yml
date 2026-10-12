@@ -1,0 +1,14 @@
+name: Feature request
+description: Something the shell could do for every app built on it.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What you need, and in which app
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How you would like it to work
