@@ -511,8 +511,10 @@
   function exportCSV(t, filename, rows) {
     function cells(r) {
       return Array.prototype.map.call(r.cells, function (c) {
-        var v = c.dataset.csv !== undefined ? c.dataset.csv : c.textContent;
-        return '"' + v.replace(/\s+/g, ' ').trim().replace(/"/g, '""') + '"';
+        var v = (c.dataset.csv !== undefined ? c.dataset.csv : c.textContent).replace(/\s+/g, ' ').trim();
+        // A leading = + - @ makes a spreadsheet run the cell as a formula.
+        if (/^[=+\-@]/.test(v)) v = "'" + v;
+        return '"' + v.replace(/"/g, '""') + '"';
       }).join(',');
     }
     var lines = [cells(t.tHead.rows[0])].concat(rows.map(cells));
