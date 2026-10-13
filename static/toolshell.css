@@ -61,7 +61,7 @@ a{color:var(--acc);text-decoration:none}a:hover{color:var(--acc-hover);text-deco
 :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 h1,h2,h3,p{margin:0}
 code,.mono{font-family:var(--mono);font-size:12px}
-code{background:var(--subtle);border:1px solid var(--line);padding:1px 6px;border-radius:6px;overflow-wrap:anywhere}
+code{background:var(--subtle);border:1px solid var(--line);padding:1px 6px;border-radius:6px;overflow-wrap:break-word}
 .muted{color:var(--muted)}.small{font-size:12px}
 .skip{position:absolute;inset-inline-start:8px;top:8px;transform:translateY(-200%);z-index:10;background:var(--surface);padding:8px 12px;border-radius:8px;border:1px solid var(--line2)}
 .skip:focus{transform:none}
