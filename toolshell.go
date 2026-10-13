@@ -34,7 +34,7 @@ import (
 	"strings"
 )
 
-//go:embed templates/*.html static/*
+//go:embed templates/*.html static/*.css static/*.js static/*.svg
 var assets embed.FS
 
 // Prefix is where the shell serves its stylesheet, script and mark.
