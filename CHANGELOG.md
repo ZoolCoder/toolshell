@@ -4,6 +4,17 @@ All notable changes to toolshell. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## v0.3.0 — 2026-10-13
+
+### Added
+
+- `guard`: a loopback-only listen check, a handler that refuses a foreign
+  `Host` and cross-site writes, sets the headers and caps the body, and an
+  `http.Server` with timeouts and graceful shutdown.
+- `mcp`: a stdio MCP server that maps tools to the CLI's own commands, serves
+  skills as prompts, and applies only plans it saved itself, by id.
+- `doctor`: the ok, warn and fail check report, as text or JSON.
+
 ## v0.2.0 — 2026-10-12
 
 ### Added

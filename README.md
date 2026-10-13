@@ -118,6 +118,28 @@ policy allows only the page's own origin. Keep inline `<script>` and `style=""` 
 templates: put behaviour in `data-` attributes the shell's script already
 reads, and put styles in classes.
 
+## Packages for CLI tools
+
+Three subpackages hold the plumbing a local admin tool needs besides its
+pages. They need nothing beyond the standard library.
+
+- **`guard`** keeps the page on this machine. `ListenAndServe` refuses a
+  non-loopback address, then serves with timeouts and a graceful shutdown.
+  `Handler` refuses a foreign `Host` (DNS rebinding) and a write started by
+  another site (CSRF), sets the headers and caps the body.
+- **`mcp`** is a stdio MCP server whose tools are the CLI's own commands, run
+  in-process with an empty stdin. A `Plan` tool saves its plan and answers
+  with a `plan_id`; an `Apply` tool takes only that id. `Skills` serves an
+  embedded `skills/*/SKILL.md` tree as prompts.
+- **`doctor`** is the `doctor` report: ok, warn or fail per check, as text or
+  as versioned JSON.
+
+```go
+err := guard.ListenAndServe(ctx, "127.0.0.1:0", handler, func(host string) {
+	fmt.Printf("ui on http://%s/\n", host)
+})
+```
+
 ## Used by
 
 - [mailctl](https://github.com/zoolcoder/mailctl): declarative mail domains,
