@@ -133,6 +133,10 @@ pages. They need nothing beyond the standard library.
   embedded `skills/*/SKILL.md` tree as prompts.
 - **`doctor`** is the `doctor` report: ok, warn or fail per check, as text or
   as versioned JSON.
+- **`activity`** is the JSONL log of what the tool did, for its Activity page.
+
+`toolshell.Back` answers a form post: it redirects to the form's `return_to`
+with the outcome as the flash the next page shows.
 
 ```go
 err := guard.ListenAndServe(ctx, "127.0.0.1:0", handler, func(host string) {

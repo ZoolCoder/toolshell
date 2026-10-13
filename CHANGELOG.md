@@ -14,6 +14,8 @@ All notable changes to toolshell. The format follows
 - `mcp`: a stdio MCP server that maps tools to the CLI's own commands, serves
   skills as prompts, and applies only plans it saved itself, by id.
 - `doctor`: the ok, warn and fail check report, as text or JSON.
+- `activity`: the JSONL log of what a tool did, read newest first.
+- `Back`: answers a form post with a redirect that carries the flash.
 
 ## v0.2.0 — 2026-10-12
 
