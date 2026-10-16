@@ -4,7 +4,7 @@ All notable changes to toolshell. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## v0.4.0 — 2026-10-16
 
 ### Added
 
