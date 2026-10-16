@@ -43,6 +43,8 @@ type Tool struct {
 	Props      []Prop
 	Tail       []string // fixed arguments after the flags, such as -json
 	Write      bool     // changes state outside this machine
+	Edits      bool     // writes files the user owns, such as a manifest, but deletes nothing
+	Local      bool     // reads only this machine's files: no network, no other program's state
 	Plan       bool     // saves the plan the command writes with -out and returns plan_id
 	Apply      bool     // takes plan_id and runs Server.ApplyCmd on the saved plan
 }
@@ -60,6 +62,7 @@ type Server struct {
 	Name, Version, Instructions string
 	Tools                       []Tool
 	Prompts                     Prompts // optional
+	Resources                   []Resource
 
 	// Run is the CLI itself: the same function main calls.
 	Run func(args []string, stdin io.Reader, stdout, stderr io.Writer) error
@@ -138,6 +141,9 @@ func (s *Server) handle(req request) (Response, bool) {
 		if s.Prompts != nil {
 			caps["prompts"] = map[string]any{}
 		}
+		if len(s.Resources) > 0 {
+			caps["resources"] = map[string]any{}
+		}
 		result := map[string]any{
 			"protocolVersion": Protocol,
 			"capabilities":    caps,
@@ -176,6 +182,23 @@ func (s *Server) handle(req request) (Response, bool) {
 			result["isError"] = true
 		}
 		resp.Result = result
+	case "resources/list":
+		list := []map[string]any{}
+		for _, r := range s.Resources {
+			list = append(list, map[string]any{"uri": r.URI, "name": r.Name, "description": r.Desc, "mimeType": r.mime()})
+		}
+		resp.Result = map[string]any{"resources": list}
+	case "resources/read":
+		var params struct {
+			URI string `json:"uri"`
+		}
+		_ = json.Unmarshal(req.Params, &params)
+		text, mime, err := s.ReadResource(params.URI)
+		if err != nil {
+			resp.Error = &Error{-32002, err.Error()}
+			break
+		}
+		resp.Result = map[string]any{"contents": []map[string]any{{"uri": params.URI, "mimeType": mime, "text": text}}}
 	case "prompts/list":
 		list := []map[string]any{}
 		if s.Prompts != nil {
@@ -268,11 +291,41 @@ func (t Tool) schema() map[string]any {
 
 func (t Tool) annotations() map[string]any {
 	return map[string]any{
-		"readOnlyHint":    !t.Write,
+		"readOnlyHint":    !t.Write && !t.Edits && !t.Apply,
 		"destructiveHint": t.Write,
-		"idempotentHint":  !t.Write,
-		"openWorldHint":   true,
+		"idempotentHint":  !t.Write && !t.Edits,
+		"openWorldHint":   !t.Local,
 	}
+}
+
+// Resource is a document an agent can read without calling a tool, such as
+// the config file. Read runs on every resources/read, so it is never stale.
+type Resource struct {
+	URI, Name, Desc string
+	MIME            string // default text/plain
+	Read            func() (string, error)
+}
+
+func (r Resource) mime() string {
+	if r.MIME == "" {
+		return "text/plain"
+	}
+	return r.MIME
+}
+
+// ErrNoResource is returned for a resources/read naming a resource the server
+// lacks.
+var ErrNoResource = errors.New("unknown resource")
+
+// ReadResource returns one resource's text and media type.
+func (s *Server) ReadResource(uri string) (string, string, error) {
+	for _, r := range s.Resources {
+		if r.URI == uri {
+			text, err := r.Read()
+			return text, r.mime(), err
+		}
+	}
+	return "", "", fmt.Errorf("%w: %s", ErrNoResource, uri)
 }
 
 // Args turns the tool input into a command line: the command, then flags,

@@ -219,3 +219,28 @@ func TestStateDir(t *testing.T) {
 		t.Fatalf("StateDir %q", got)
 	}
 }
+
+func TestResourcesAndEditHints(t *testing.T) {
+	s := &Server{Name: "x", Version: "1",
+		Tools: []Tool{{Name: "add", Edits: true}, {Name: "list", Local: true}},
+		Resources: []Resource{{URI: "x://config", Name: "config", MIME: "application/yaml",
+			Read: func() (string, error) { return "version: 1", nil }}}}
+	replies := session(t, s,
+		`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}`,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/list"}`,
+		`{"jsonrpc":"2.0","id":3,"method":"resources/list"}`,
+		`{"jsonrpc":"2.0","id":4,"method":"resources/read","params":{"uri":"x://config"}}`,
+		`{"jsonrpc":"2.0","id":5,"method":"resources/read","params":{"uri":"x://nope"}}`)
+	b, _ := json.Marshal(replies)
+	got := string(b)
+	for _, want := range []string{`"resources":{}`, `"uri":"x://config"`, `"text":"version: 1"`, `"mimeType":"application/yaml"`,
+		`"annotations":{"destructiveHint":false,"idempotentHint":false,"openWorldHint":true,"readOnlyHint":false},"description":"","inputSchema":{"properties":{},"type":"object"},"name":"add"`,
+		`"annotations":{"destructiveHint":false,"idempotentHint":true,"openWorldHint":false,"readOnlyHint":true},"description":"","inputSchema":{"properties":{},"type":"object"},"name":"list"`} {
+		if !strings.Contains(got, want) {
+			t.Errorf("replies lack %s\n%s", want, got)
+		}
+	}
+	if replies[4].Error == nil || replies[4].Error.Code != -32002 {
+		t.Errorf("unknown resource: %+v", replies[4])
+	}
+}

@@ -4,6 +4,19 @@ All notable changes to toolshell. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Added
+
+- `mcp`: resources (`resources/list` and `resources/read`), and the `Edits`
+  and `Local` tool flags, which set the destructive, idempotent and open-world
+  annotations.
+
+### Fixed
+
+- A page change no longer logs "Uncaught (in promise)" when the browser skips
+  its view transition, as after a slow form post.
+
 ## v0.3.0 — 2026-10-13
 
 ### Added
