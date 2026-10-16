@@ -593,6 +593,15 @@
       progress();
     });
     window.addEventListener('pageshow', function (e) { if (e.persisted) stop(); });
+    // A cross-document view transition is skipped when the next page is slow,
+    // as after a long POST; its promises then reject with nothing to report.
+    function quiet(e) {
+      var vt = e.viewTransition;
+      if (!vt) return;
+      [vt.ready, vt.finished, vt.updateCallbackDone].forEach(function (p) { if (p) p.catch(function () {}); });
+    }
+    window.addEventListener('pageswap', quiet);
+    window.addEventListener('pagereveal', quiet);
     window.addEventListener('pagehide', function () { if (bar) bar.hidden = true; });
   }
 
